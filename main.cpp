@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include<string.h>
+#include <cmath>
 
 #include<GL/glew.h>
 #include<GLFW/glfw3.h>
@@ -7,7 +8,14 @@
 //Window dimensions
 const GLint WIDTH = 800, HEIGHT = 600;
 
-GLuint VAO, VBO, shader;
+GLuint VAO, VBO, shader, uniformXMove;
+
+bool direction = true;
+float triOffset = 0.0f;	//the offset will start at zero and move it left and right
+float triMaxOffset = 0.7f;	//when the triOffset value hits 0.7, we make it move to the left until it hits -0.7
+float triIncrement = 0.0005f;
+
+
 
 //Vertex shader
 static const char* vShader = "							\n\
@@ -15,9 +23,11 @@ static const char* vShader = "							\n\
 														\n\
 layout (location = 0) in vec3 pos;						\n\
 														\n\
+uniform float xMove;									\n\
+														\n\
 void main()												\n\
 {														\n\
-	gl_Position = vec4(0.4*pos.x,0.4*pos.y,pos.z,1.0);	\n\
+	gl_Position = vec4(0.4*pos.x + xMove, 0.4*pos.y, pos.z, 1.0);	\n\
 }";
 //vec3 refers to a vector with 3 values with x,y,z positions
 //glPosition is a value to the shader itself. It's an output value
@@ -125,6 +135,9 @@ void CompileShaders() {
 		printf("Error validating program: %s\n", eLog);
 		return;
 	}
+
+	//get the actual ID or location of the uniform variable
+	uniformXMove = glGetUniformLocation(shader, "xMove");		//shader refers to the shader program itself, and xMove is the name of the variable in the shader
 }
 
 
@@ -186,12 +199,25 @@ int main()
 	{
 		// Get + Handle user input events
 		glfwPollEvents();
+		
+		if (direction) {
+			triOffset += triIncrement;		//increment the triOffset value if you are heading towards the right
+		}
+		else {
+			triOffset -= triIncrement;
+		}
 
-		// Clear window
+		if (abs(triOffset) >= triMaxOffset) {
+			direction = !direction;
+		}
+
+		// Clear the window
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);			//Clears the entire screen. RGB format
 		glClear(GL_COLOR_BUFFER_BIT);		//Clears the color buffer
 
 		glUseProgram(shader);
+
+		glUniform1f(uniformXMove, triOffset);		//Here, since we have attached the shader, we want to set the uniform value to the value of triOffset. uniformXMove is the location in the shader
 
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 3);		//0 is the first point of the triangle and 3 refers to the amount of vertices we want to draw
