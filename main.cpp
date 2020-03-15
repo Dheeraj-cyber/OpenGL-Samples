@@ -22,6 +22,10 @@ float triIncrement = 0.0005f;
 
 float curAngle = 0.0f;
 
+float sizeDirection = true;
+float curSize = 0.4f;
+float maxSize = 0.0f;
+float minSize = 0.0f;
 
 //Vertex shader
 static const char* vShader = "							\n\
@@ -33,7 +37,7 @@ uniform mat4 model;									\n\
 														\n\
 void main()												\n\
 {														\n\
-	gl_Position = model*vec4(0.4*pos.x, 0.4*pos.y, pos.z, 1.0);	\n\
+	gl_Position = model*vec4(pos, 1.0);	\n\
 }";
 //vec3 refers to a vector with 3 values with x,y,z positions
 //glPosition is a value to the shader itself. It's an output value
@@ -224,6 +228,18 @@ int main()
 			curAngle -= 360;
 		}
 
+		if (direction)
+		{
+			curSize += 0.0001f;
+		}
+		else {
+			curSize -= 0.0001f;
+		}
+
+		if (curSize >= maxSize || curSize <= minSize) {
+			sizeDirection = !sizeDirection;
+		}
+
 		// Clear the window
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);			//Clears the entire screen. RGB format
 		glClear(GL_COLOR_BUFFER_BIT);		//Clears the color buffer
@@ -231,9 +247,10 @@ int main()
 		glUseProgram(shader);
 
 		glm::mat4 model(1.0f);	//creates a 4x4 identity matrix
+		//model = glm::rotate(model, curAngle * toRadians, glm::vec3(0.0f, 0.0f, 1.0f));    //glm::vec3(0.0f, 0.0f, 1.0f) is used to spin the model aroud the z-axis, which is the axis pointing forward and backward from us.
 		model = glm::translate(model, glm::vec3(triOffset, 0.0f, 0.0f));	//Apply translation to the identity matrix. transaltion is used to move a set of points 
-		model = glm::rotate(model, curAngle * toRadians, glm::vec3(0.0f, 0.0f, 1.0f));    //glm::vec3(0.0f, 0.0f, 1.0f) is used to spin the model aroud the z-axis, which is the axis pointing forward and backward from us.
 		
+		model = glm::scale(model, glm::vec3(curSize, 0.4f, 1.0f));		//scale in the x axis by 2, y axis by 2 and the z axis by 1
 		
 		
 		//glUniform1f(uniformXMove, triOffset);		Here, since we have attached the shader, we want to set the uniform value to the value of triOffset. uniformXMove is the location in the shader
