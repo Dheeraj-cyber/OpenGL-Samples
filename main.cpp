@@ -83,7 +83,7 @@ void AddShader(GLuint theProgram, const char* shaderCode, GLenum shaderType)
 	glShaderSource(theShader, 1, theCode, codeLength);  //grabs the code and puts it into theShader
 	glCompileShader(theShader);			//Compiles the shader
 
-	//Error chaecking
+	//Error checking
 	GLint result = 0;			//This holds the result of the above two functions that we are going to perform
 	GLchar eLog[1024] = { 0 };	//This is a place to log the error
 
