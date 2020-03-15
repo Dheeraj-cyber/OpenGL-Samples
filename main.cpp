@@ -223,7 +223,7 @@ int main()
 		glUseProgram(shader);
 
 		glm::mat4 model(1.0f);	//creates a 4x4 identity matrix
-		model = glm::translate(model, glm::vec3(triOffset, triOffset, 0.0f));	//Apply translation to the identity matrix
+		model = glm::translate(model, glm::vec3(triOffset, triOffset, 0.0f));	//Apply translation to the identity matrix. transaltion is used to move a set of points 
 
 		//glUniform1f(uniformXMove, triOffset);		Here, since we have attached the shader, we want to set the uniform value to the value of triOffset. uniformXMove is the location in the shader
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));	//GL_FALSE is used when we don't want to transpose the matrix. value_ptr is used because the model is not directly in a raw format
