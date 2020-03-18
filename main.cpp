@@ -13,7 +13,7 @@
 const GLint WIDTH = 800, HEIGHT = 600;
 const float toRadians = 3.14159265f / 180.0f;    //radians = pi/180
 
-GLuint VAO, VBO, IBO, shader, uniformModel;
+GLuint VAO, VBO, IBO, shader, uniformModel, uniformProjection;
 
 bool direction = true;
 float triOffset = 0.0f;	//the offset will start at zero and move it left and right
@@ -36,10 +36,11 @@ layout (location = 0) in vec3 pos;						\n\
 out vec4 vCol;											\n\
 														\n\
 uniform mat4 model;										\n\
+uniform mat4 projection;								\n\
 														\n\
 void main()												\n\
 {														\n\
-	gl_Position = model*vec4(pos, 1.0);					\n\
+	gl_Position = projection * model*vec4(pos, 1.0);	\n\
 	vCol = vec4(clamp(pos, 0.0f, 1.0f), 1.0f);			\n\
 }";
 //vec3 refers to a vector with 3 values with x,y,z positions
@@ -171,10 +172,11 @@ void CompileShaders() {
 	//get the actual ID or location of the uniform variable
 	uniformModel = glGetUniformLocation(shader, "model");		//shader refers to the shader program itself, and xMove is the name of the variable in the shader
 	//uniform model will be the location of the model matrix
+	uniformProjection = glGetUniformLocation(shader, "projection");    //get the projection variable and place the id of the location in uniformProjection
 }
 
 
-int main() 
+int main()
 {
 	//initialize GLFW
 	if (!glfwInit())
@@ -216,7 +218,7 @@ int main()
 	GLenum error = glewInit();
 	if (error != GLEW_OK)
 	{
-		printf("Error: %s",glewGetErrorString(error));
+		printf("Error: %s", glewGetErrorString(error));
 		glfwDestroyWindow(mainWindow);
 		glfwTerminate();
 		return 1;
@@ -230,12 +232,14 @@ int main()
 	CreateTriangle();
 	CompileShaders();
 
+	glm::mat4 projection = glm::perspective(45.0f, (GLfloat)bufferWidth / (GLfloat)bufferHeight, 0.1f, 100.0f);		//Divide the width by the height to get the aspect ratio
+
 	// loop until window closed
 	while (!glfwWindowShouldClose(mainWindow))
 	{
 		// Get + Handle user input events
 		glfwPollEvents();
-		
+
 		if (direction) {
 			triOffset += triIncrement;		//increment the triOffset value if you are heading towards the right
 		}
@@ -272,15 +276,16 @@ int main()
 		glUseProgram(shader);
 
 		glm::mat4 model(1.0f);	//creates a 4x4 identity matrix
-		
+
+		model = glm::translate(model, glm::vec3(triOffset, 0.0f, -2.5f));	//Apply translation to the identity matrix. transaltion is used to move a set of points 
 		model = glm::rotate(model, curAngle * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));    //glm::vec3(0.0f, 0.0f, 1.0f) is used to spin the model aroud the z-axis, which is the axis pointing forward and backward from us.
-		//model = glm::translate(model, glm::vec3(triOffset, 0.0f, 0.0f));	//Apply translation to the identity matrix. transaltion is used to move a set of points 
-		
 		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 1.0f));		//scale in the x axis by 2, y axis by 2 and the z axis by 1
-		
-		
+
+
 		//glUniform1f(uniformXMove, triOffset);		Here, since we have attached the shader, we want to set the uniform value to the value of triOffset. uniformXMove is the location in the shader
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));	//GL_FALSE is used when we don't want to transpose the matrix. value_ptr is used because the model is not directly in a raw format
+		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
+
 		glBindVertexArray(VAO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 		//glDrawArrays(GL_TRIANGLES, 0, 3);		//0 is the first point of the triangle and 3 refers to the amount of vertices we want to draw
