@@ -13,7 +13,7 @@
 const GLint WIDTH = 800, HEIGHT = 600;
 const float toRadians = 3.14159265f / 180.0f;    //radians = pi/180
 
-GLuint VAO, VBO, shader, uniformModel;
+GLuint VAO, VBO, IBO, shader, uniformModel;
 
 bool direction = true;
 float triOffset = 0.0f;	//the offset will start at zero and move it left and right
@@ -65,14 +65,26 @@ void main()												\n\
 
 void CreateTriangle()
 {
+	unsigned int indices[] = {
+		0, 3, 1,				//Draws the 0th point first, 3rd next and then the 1st
+		1, 3, 2, 
+		2, 3, 0,
+		0, 1, 2 
+	};
+
 	GLfloat vertices[] = {
-		-1.0f,-1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,
-		0.0f, 1.0f, 0.0f
+		-1.0f,-1.0f, 0.0f,      //black , bottom left
+		0.0f, -1.0f, 1.0f,		//goes into the background
+		1.0f, -1.0f, 0.0f,		//red, bottom right
+		0.0f, 1.0f, 0.0f		//green, top
 	};
 
 	glGenVertexArrays(1, &VAO);			//creates a vertex array on the graphics card. 1 refers to the amount of arrays that we want to create
 	glBindVertexArray(VAO);
+
+	glGenBuffers(1, &IBO);
+	glBindBuffer(GL_ARRAY_BUFFER, IBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -83,6 +95,8 @@ void CreateTriangle()
 	glEnableVertexAttribArray(0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	//Note: You should unbind the IBO/EBO AFTER YOU UNBIND THE VAO! 
 
 	glBindVertexArray(0);		//Unbind the vertex array
 
@@ -199,13 +213,16 @@ int main()
 	//Allow modern extension features
 	glewExperimental = GL_TRUE;		//Allows us to use experimental features
 
-	if (glewInit() != GLEW_OK)
+	GLenum error = glewInit();
+	if (error != GLEW_OK)
 	{
-		printf("GLEW initialization failed!");
+		printf("Error: %s",glewGetErrorString(error));
 		glfwDestroyWindow(mainWindow);
 		glfwTerminate();
 		return 1;
 	}
+
+	glEnable(GL_DEPTH_TEST);			//Enables depth testing to determine which triangles are deeper into the image effectively, and therefore which ones to be drawn on top of the others
 
 	//Create Viewport and Setup viewport size
 	glViewport(0, 0, bufferWidth, bufferHeight);
@@ -250,12 +267,13 @@ int main()
 
 		// Clear the window
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);			//Clears the entire screen. RGB format
-		glClear(GL_COLOR_BUFFER_BIT);		//Clears the color buffer
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);		//Clears the color buffer bit and the depth buffer bit 
 
 		glUseProgram(shader);
 
 		glm::mat4 model(1.0f);	//creates a 4x4 identity matrix
-		//model = glm::rotate(model, curAngle * toRadians, glm::vec3(0.0f, 0.0f, 1.0f));    //glm::vec3(0.0f, 0.0f, 1.0f) is used to spin the model aroud the z-axis, which is the axis pointing forward and backward from us.
+		
+		model = glm::rotate(model, curAngle * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));    //glm::vec3(0.0f, 0.0f, 1.0f) is used to spin the model aroud the z-axis, which is the axis pointing forward and backward from us.
 		//model = glm::translate(model, glm::vec3(triOffset, 0.0f, 0.0f));	//Apply translation to the identity matrix. transaltion is used to move a set of points 
 		
 		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 1.0f));		//scale in the x axis by 2, y axis by 2 and the z axis by 1
@@ -264,7 +282,10 @@ int main()
 		//glUniform1f(uniformXMove, triOffset);		Here, since we have attached the shader, we want to set the uniform value to the value of triOffset. uniformXMove is the location in the shader
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));	//GL_FALSE is used when we don't want to transpose the matrix. value_ptr is used because the model is not directly in a raw format
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 3);		//0 is the first point of the triangle and 3 refers to the amount of vertices we want to draw
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);		//0 is the first point of the triangle and 3 refers to the amount of vertices we want to draw
+		glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);          //12 because it is in 3D, 3 sides*3 sides*3 sides*3 sides
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 
 		glUseProgram(0);
