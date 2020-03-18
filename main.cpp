@@ -33,27 +33,35 @@ static const char* vShader = "							\n\
 														\n\
 layout (location = 0) in vec3 pos;						\n\
 														\n\
-uniform mat4 model;									\n\
+out vec4 vCol;											\n\
+														\n\
+uniform mat4 model;										\n\
 														\n\
 void main()												\n\
 {														\n\
-	gl_Position = model*vec4(pos, 1.0);	\n\
+	gl_Position = model*vec4(pos, 1.0);					\n\
+	vCol = vec4(clamp(pos, 0.0f, 1.0f), 1.0f);			\n\
 }";
 //vec3 refers to a vector with 3 values with x,y,z positions
 //glPosition is a value to the shader itself. It's an output value
-
+//out vec4 vCol is used to indicate whatever vCol is set to, it will be passed on to another shader. In this case, the fragment shader will be picked up
+//vCol = vec4(clamp(pos, 0.0f, 1.0f), 1.0f); - means that we want to make the color to whatever the position is. The positions are given in GLfloat vertices[] in the createTriangle() method
+//clamp is used because we don't want to have any negative values in there because that will be just black
 
 
 //Fragment shader
 static const char* fShader = "							\n\
 #version 330											\n\
 														\n\
+in vec4 vCol;											\n\
+														\n\
 out vec4 colour;										\n\
 														\n\
 void main()												\n\
 {														\n\
-	colour = vec4(1.0, 0.0, 0.0, 1.0);	\n\
+	colour = vCol;										\n\
 }";
+//in vec4 vCol is used to catch the value that will be given by out vec4 vCol in the vertex shader
 
 void CreateTriangle()
 {
@@ -248,9 +256,9 @@ int main()
 
 		glm::mat4 model(1.0f);	//creates a 4x4 identity matrix
 		//model = glm::rotate(model, curAngle * toRadians, glm::vec3(0.0f, 0.0f, 1.0f));    //glm::vec3(0.0f, 0.0f, 1.0f) is used to spin the model aroud the z-axis, which is the axis pointing forward and backward from us.
-		model = glm::translate(model, glm::vec3(triOffset, 0.0f, 0.0f));	//Apply translation to the identity matrix. transaltion is used to move a set of points 
+		//model = glm::translate(model, glm::vec3(triOffset, 0.0f, 0.0f));	//Apply translation to the identity matrix. transaltion is used to move a set of points 
 		
-		model = glm::scale(model, glm::vec3(curSize, 0.4f, 1.0f));		//scale in the x axis by 2, y axis by 2 and the z axis by 1
+		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 1.0f));		//scale in the x axis by 2, y axis by 2 and the z axis by 1
 		
 		
 		//glUniform1f(uniformXMove, triOffset);		Here, since we have attached the shader, we want to set the uniform value to the value of triOffset. uniformXMove is the location in the shader
