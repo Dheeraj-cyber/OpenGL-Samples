@@ -8,6 +8,7 @@ class Window
 {
 public:
 	Window();
+	
 	Window(GLint windowWidth, GLint windowHeight);
 
 	int Initialise();
@@ -37,7 +38,7 @@ public:
 
 	void swapBuffers()
 	{
-		return glfwSwapBuffers(mainWindow);
+		glfwSwapBuffers(mainWindow);
 	}
 
 	~Window();

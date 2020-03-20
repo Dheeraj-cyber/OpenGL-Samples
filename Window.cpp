@@ -41,6 +41,7 @@ int Window::Initialise()
 	//Allow foreward compatibility
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
+	//Create the window
 	mainWindow = glfwCreateWindow(width, height, "Test Window", NULL, NULL);
 	if (!mainWindow)
 	{

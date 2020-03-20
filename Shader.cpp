@@ -81,10 +81,11 @@ void Shader::CompileShader(const char* vertexCode, const char* fragmentCode)
 		return;
 	}
 
+	//uniform model will be the location of the model matrix
+	uniformProjection = glGetUniformLocation(shaderID, "projection");   //get the projection variable and place the id of the location in uniformProjection
 	//get the actual ID or location of the uniform variable
 	uniformModel = glGetUniformLocation(shaderID, "model");		//shader refers to the shader program itself, and xMove is the name of the variable in the shader
-	//uniform model will be the location of the model matrix
-	uniformProjection = glGetUniformLocation(shaderID, "projection");    //get the projection variable and place the id of the location in uniformProjection
+	uniformView = glGetUniformLocation(shaderID, "view");	//when the shader is created, we will get the uniform view and location and put it in uniformView
 }
 
 GLuint Shader::GetProjectionLocation()
@@ -95,6 +96,11 @@ GLuint Shader::GetProjectionLocation()
 GLuint Shader::GetModelLocation()
 {
 	return uniformModel;
+}
+
+GLuint Shader::GetViewLocation()
+{
+	return uniformView;
 }
 
 void Shader::UseShader()
