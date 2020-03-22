@@ -1,23 +1,31 @@
-#version 330											
-														
-in vec4 vCol;											
+#version 330
+
+in vec4 vCol;
 in vec2 TexCoord;
-														
-out vec4 colour;	
+in vec3 Normal;
+
+out vec4 colour;
 
 struct DirectionalLight 
 {
 	vec3 colour;
 	float ambientIntensity;
-};									
+	vec3 direction;
+	float diffuseIntensity;
+};
 
-uniform  sampler2D theTexture;
+uniform sampler2D theTexture;
 uniform DirectionalLight directionalLight;
 
-														
-void main()												
-{											
+void main()
+{
 	vec4 ambientColour = vec4(directionalLight.colour, 1.0f) * directionalLight.ambientIntensity;
-			
-	colour = texture(theTexture, TexCoord) * ambientColour;										
+	
+	/*Here, A.B = |A||B|cos(angle) = 1*1*cos(angle) ===>  A.B = cos(angle)  */
+	float diffuseFactor = max(dot(normalize(Normal), normalize(directionalLight.direction)), 0.0f);   /*normalize means converting it to a unit vector*/
+	vec4 diffuseColour = vec4(directionalLight.colour, 1.0f) * directionalLight.diffuseIntensity * diffuseFactor;
+
+	colour = texture(theTexture, TexCoord) * (ambientColour + diffuseColour);
 }
+
+
