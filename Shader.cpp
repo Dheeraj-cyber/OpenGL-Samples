@@ -86,6 +86,9 @@ void Shader::CompileShader(const char* vertexCode, const char* fragmentCode)
 	//get the actual ID or location of the uniform variable
 	uniformModel = glGetUniformLocation(shaderID, "model");		//shader refers to the shader program itself, and xMove is the name of the variable in the shader
 	uniformView = glGetUniformLocation(shaderID, "view");	//when the shader is created, we will get the uniform view and location and put it in uniformView
+	uniformAmbientColour = glGetUniformLocation(shaderID, "directionalLight.colour");
+	uniformAmbientIntensity = glGetUniformLocation(shaderID, "directionalLight.ambientIntensity");			//binds to the ambient intensity value of the directional light
+
 }
 
 GLuint Shader::GetProjectionLocation()
@@ -101,6 +104,16 @@ GLuint Shader::GetModelLocation()
 GLuint Shader::GetViewLocation()
 {
 	return uniformView;
+}
+
+GLuint Shader::GetAmbientColourLocation()
+{
+	return uniformAmbientColour;
+}
+
+GLuint Shader::GetAmbientIntensityLocation()
+{
+	return uniformAmbientIntensity;
 }
 
 void Shader::UseShader()
