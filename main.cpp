@@ -18,6 +18,7 @@
 #include "Camera.h"
 #include "Texture.h"
 #include "Light.h"
+#include "Material.h"
 
 
 const float toRadians = 3.14159265f / 180.0f;    //radians = pi/180
@@ -29,6 +30,9 @@ Camera camera;
 
 Texture brickTexture;
 Texture dirtTexture;
+
+Material shinyMaterial;			//has high shininess and very high specular intensity
+Material dullMaterial;			//has low shininess and low specular intensity
 
 Light mainLight;
 
@@ -90,10 +94,10 @@ void CreateObjects()
 
 	GLfloat vertices[] = {
 	//	x		y	  z				u		v	 normals  nx	ny	 nz
-		-1.0f,-1.0f, 0.0f,		   0.0f,   0.0f,		0.0f, 0.0f, 0.0f,//black , bottom left
-		0.0f, -1.0f, 1.0f,  	   0.5f,   0.0f,		0.0f, 0.0f, 0.0f,//goes into the background
-		1.0f, -1.0f, 0.0f,	       1.0f,   0.0f,		0.0f, 0.0f, 0.0f,//red, bottom right
-		0.0f, 1.0f, 0.0f,		   0.5f,   1.0f,		0.0f, 0.0f, 0.0f//green, top
+		-1.0f,-1.0f, -0.6f,		   0.0f,   0.0f,		0.0f, 0.0f, 0.0f,		//black , bottom left
+		0.0f, -1.0f, 1.0f,  	   0.5f,   0.0f,		0.0f, 0.0f, 0.0f,		//goes into the background
+		1.0f, -1.0f, -0.6f,	       1.0f,   0.0f,		0.0f, 0.0f, 0.0f,		//red, bottom right
+		0.0f, 1.0f, 0.0f,		   0.5f,   1.0f,		0.0f, 0.0f, 0.0f		//green, top
 	};
 
 	calcAverageNormals(indices, 12, vertices, 32, 8, 5);		//amount of indices - 12, no. of vertices - 32, size of each vertex - 8, normal offset - 5. Note: When the indices are altered, the vertices will be altered as well
@@ -117,7 +121,7 @@ void CreateShaders()
 int main()
 {
 	
-	mainWindow = Window(800, 600);
+	mainWindow = Window(1366, 768);
 	mainWindow.Initialise();
 
 	CreateObjects();
@@ -130,11 +134,15 @@ int main()
 	dirtTexture = Texture("Textures/dirt.png");
 	dirtTexture.LoadTexture();
 
+	shinyMaterial = Material(1.0f, 32);			//the value for shine goes in powers of 2 = 2, 4, 8, 16, 32, 64.............
+	dullMaterial = Material(0.3f, 4);
+
 	mainLight = Light(1.0f, 1.0f, 1.0f, 0.2f,							
-					  2.0f, -1.0f, -2.0f, 1.0f);					//change the fourth parameter 0.2f, to increase or decrease the intensity of diffuse light
+					  2.0f, -1.0f, -2.0f, 0.1f);					//change the fourth parameter 0.2f, to increase or decrease the intensity of diffuse light
 	
-	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0,
-		uniformAmbientIntensity = 0, uniformAmbientColour = 0, uniformDirection = 0, uniformDiffuseIntensity = 0;
+	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformEyePosition = 0, 
+		uniformAmbientIntensity = 0, uniformAmbientColour = 0, uniformDirection = 0, uniformDiffuseIntensity = 0,
+		uniformSpecularIntensity = 0, uniformShininess = 0;
 	glm::mat4 projection = glm::perspective(45.0f, (GLfloat) mainWindow.getBufferWidth()/ mainWindow.getBufferHeight(), 0.1f, 100.0f);		//Divide the width by the height to get the aspect ratio
 
 	// loop until window closed
@@ -161,28 +169,34 @@ int main()
 		uniformAmbientIntensity = shaderList[0].GetAmbientIntensityLocation();
 		uniformDirection = shaderList[0].GetDirectionLocation();
 		uniformDiffuseIntensity = shaderList[0].GetDiffuseIntensityLocation();
+		uniformEyePosition = shaderList[0].GetEyePositionLocation();			//Holds the uniform value for the position of our camera
+		uniformSpecularIntensity = shaderList[0].GetSpecularIntensityLocation();
+		uniformShininess = shaderList[0].GetShininessLocation();
 
 		mainLight.UseLight(uniformAmbientIntensity, uniformAmbientColour,
 							uniformDiffuseIntensity, uniformDirection);
+
+		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.calculateViewMatrix()));
+		glUniform3f(uniformEyePosition, camera.getCameraPosition().x, camera.getCameraPosition().y, camera.getCameraPosition().z);
 		
 		glm::mat4 model(1.0f);	//creates a 4x4 identity matrix
 
 		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -2.5f));	//Apply translation to the identity matrix. transaltion is used to move a set of points 
 		//model = glm::rotate(model, curAngle * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));    //glm::vec3(0.0f, 0.0f, 1.0f) is used to spin the model aroud the z-axis, which is the axis pointing forward and backward from us.
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 1.0f));		//scale in the x axis by 2, y axis by 2 and the z axis by 1
+		//model = glm::scale(model, glm::vec3(0.4f, 0.4f, 1.0f));		//scale in the x axis by 2, y axis by 2 and the z axis by 1
 		//glUniform1f(uniformXMove, triOffset);		Here, since we have attached the shader, we want to set the uniform value to the value of triOffset. uniformXMove is the location in the shader
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));	//GL_FALSE is used when we don't want to transpose the matrix. value_ptr is used because the model is not directly in a raw format
-		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
-		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.calculateViewMatrix()));
 		brickTexture.UseTexture();
-		
+		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
 		meshList[0]->RenderMesh();
 
 		model = glm::mat4(1.0f);	//Creates a identity matrix
-		model = glm::translate(model, glm::vec3(0.0f, 1.0f, -2.5f));
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 1.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 4.0f, -2.5f));
+		//model = glm::scale(model, glm::vec3(0.4f, 0.4f, 1.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		dirtTexture.UseTexture();
+		dullMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
 		meshList[1]->RenderMesh();
 
 		glUseProgram(0);

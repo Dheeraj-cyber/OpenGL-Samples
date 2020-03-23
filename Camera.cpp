@@ -72,6 +72,11 @@ glm::mat4 Camera::calculateViewMatrix()
 	//position + front = look at everything in front
 }
 
+glm::vec3 Camera::getCameraPosition()
+{
+	return position;
+}
+
 void Camera::update()
 {
 	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
