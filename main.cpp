@@ -22,6 +22,7 @@
 #include "DirectionalLight.h"
 #include "PointLight.h"
 #include "Material.h"
+#include "SpotLight.h"
 
 
 const float toRadians = 3.14159265f / 180.0f;    //radians = pi/180
@@ -40,6 +41,7 @@ Material dullMaterial;			//has low shininess and low specular intensity
 
 DirectionalLight mainLight;
 PointLight pointLights[MAX_POINT_LIGHTS];
+SpotLight spotLights[MAX_SPOT_LIGHTS];
 
 GLfloat deltaTime = 0.0f;		//change in time from the last time we chaecked
 GLfloat lastTime = 0.0f;
@@ -57,7 +59,8 @@ static const char* vShader = "Shaders/shader.vert";
 static const char* fShader = "Shaders/shader.frag";
 //in vec4 vCol is used to catch the value that will be given by out vec4 vCol in the vertex shader
 
-void calcAverageNormals(unsigned int* indices, unsigned int indiceCount, GLfloat* vertices, unsigned int verticeCount, unsigned int vLength, unsigned int normalOffset)
+void calcAverageNormals(unsigned int* indices, unsigned int indiceCount, GLfloat* vertices, unsigned int verticeCount,
+						unsigned int vLength, unsigned int normalOffset)
 {
 	for (size_t i = 0; i < indiceCount; i += 3)
 	{
@@ -161,22 +164,39 @@ int main()
 	dullMaterial = Material(0.3f, 4);
 
 	mainLight = DirectionalLight(1.0f, 1.0f, 1.0f, 
-								 0.0f, 0.0f, 
+								 0.1f, 0.1f, 
 								 0.0f, 0.0f, -1.0f);					//change the fourth parameter 0.2f, to increase or decrease the intensity of diffuse light
 	
 	unsigned int pointLightCount = 0;
 
 	pointLights[0] = PointLight(0.0f, 0.0f, 1.0f,
-								0.0f, 1.0f,
+								0.0f, 0.1f,
 								0.0f, 0.0f, 0.0f,
 								0.3f, 0.2f, 0.1f);
-	pointLightCount++;
+	//pointLightCount++;
 	
 	pointLights[1] = PointLight(0.0f, 1.0f, 0.0f,
-								0.0f, 1.0f,
+								0.0f, 0.1f,
 								-4.0f, 2.0f, 0.0f,
 								0.3f, 0.1f, 0.1f);
-	pointLightCount++;
+	//pointLightCount++;
+
+	unsigned int spotLightCount = 0;
+	spotLights[0] = SpotLight(1.0f, 1.0f, 1.0f,
+								0.0f, 2.0f,
+								0.0f, 0.0f, 0.0f,
+								0.0f, -1.0f, 0.0f,
+								1.0f, 0.0f, 0.0f,
+								20.0f);				//20.0f indicates the angle of our spotlight. In this case, 20 degrees.
+	spotLightCount++;
+	
+	spotLights[1] = SpotLight(1.0f, 1.0f, 1.0f,
+								0.0f, 1.0f,
+								0.0f, -1.5f, 0.0f,
+								-100.0f, -1.0f, 0.0f,
+								1.0f, 0.0f, 0.0f,
+								20.0f);				//20.0f indicates the angle of our spotlight. In this case, 20 degrees.
+	spotLightCount++;
 
 	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformEyePosition = 0,
 		uniformSpecularIntensity = 0, uniformShininess = 0;
@@ -206,9 +226,13 @@ int main()
 		uniformSpecularIntensity = shaderList[0].GetSpecularIntensityLocation();
 		uniformShininess = shaderList[0].GetShininessLocation();
 
+		glm::vec3 lowerLight = camera.getCameraPosition();
+		lowerLight.y -= 0.3f;
+		spotLights[0].SetFlash(lowerLight, camera.getCameraDirection());
 
 		shaderList[0].SetDirectionalLight(&mainLight);
 		shaderList[0].SetPointLights(pointLights, pointLightCount);
+		shaderList[0].SetSpotLights(spotLights, spotLightCount);
 
 		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.calculateViewMatrix()));
@@ -237,7 +261,7 @@ int main()
 		model = glm::translate(model, glm::vec3(0.0f, -2.0f, 0.0f));
 		//model = glm::scale(model, glm::vec3(0.4f, 0.4f, 1.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		plainTexture.UseTexture();
+		dirtTexture.UseTexture();
 		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
 		meshList[2]->RenderMesh();
 

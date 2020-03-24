@@ -8,6 +8,7 @@ in vec3 FragPos;
 out vec4 colour;
 
 const int MAX_POINT_LIGHTS = 3;
+const int MAX_SPOT_LIGHTS = 3;
 
 struct Light {
 	vec3 colour;
@@ -29,6 +30,13 @@ struct PointLight {
 	float exponent;
 };
 
+struct SpotLight
+{
+	PointLight base;
+	vec3 direction;
+	float edge;
+};
+
 struct Material 
 {
 	float specularIntensity;
@@ -36,9 +44,11 @@ struct Material
 };
 
 uniform int pointLightCount;
+uniform int spotLightCount;
 
 uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
+uniform SpotLight spotLights[MAX_SPOT_LIGHTS];
 
 uniform sampler2D theTexture;
 uniform Material material;
@@ -76,30 +86,62 @@ vec4 CalcDirectionalLight()
 	return CalcLightByDirection(directionalLight.base, directionalLight.direction);
 }
 
-vec4 CalcPointLight()
+vec4 CalcPointLight(PointLight pLight)
+{
+		vec3 direction = FragPos - pLight.position;			/*Gets the vector from the point light to our fragment*/
+		float distance = length(direction);
+		direction = normalize(direction);
+		
+		vec4 colour = CalcLightByDirection(pLight.base, direction);
+		float attenuation = pLight.exponent * distance * distance + 
+							pLight.linear * distance + 
+							pLight.constant;				/*ax^2 + bx + c*/
+							
+		return (colour / attenuation);
+}
+
+vec4 CalcSpotLight(SpotLight sLight)			//calculates the light for a single spotlight
+{
+	vec3 rayDirection = normalize(FragPos - sLight.base.position);			//vector between where we are and the fragment we are currently using the calculation for
+	float slFactor = dot(rayDirection, sLight.direction);			//this decides whether to light the fragment or not. rayDirection is from where we are to the point being illuminated. sLight.direction is the direction that our light is facing.
+																	//the dot product gets the angle between the two and if the angle is smaller, then wwe know that the point lies within the sort of cone of our spotlight
+																	
+	if (slFactor > sLight.edge)
+	{
+		vec4 colour = CalcPointLight(sLight.base);
+		
+		return colour * (1.0f - (1.0f - slFactor)*(1.0f/(1.0f - sLight.edge)));				//Gets the ratio between the two scales 
+	} else {
+		return vec4(0, 0, 0, 0);				//No light
+	}
+}
+
+vec4 CalcPointLights()
 {
 	vec4 totalColour = vec4(0, 0, 0, 0);
 	for(int i = 0; i < pointLightCount; i++)
 	{
-		vec3 direction = FragPos - pointLights[i].position;			/*Gets the vector from the point light to our fragment*/
-		float distance = length(direction);
-		direction = normalize(direction);
-		
-		vec4 colour = CalcLightByDirection(pointLights[i].base, direction);
-		float attenuation = pointLights[i].exponent * distance * distance + 
-							pointLights[i].linear * distance + 
-							pointLights[i].constant;				/*ax^2 + bx + c*/
-							
-		totalColour += (colour / attenuation);
+		totalColour += CalcPointLight(pointLights[i]);
 	}
 	
 	return totalColour;
 }
 
+vec4 CalcSpotLights()
+{
+	vec4 totalColour = vec4(0, 0, 0, 0);
+	for(int i = 0; i < spotLightCount; i++)
+	{
+		totalColour += CalcSpotLight(spotLights[i]);
+	}
+	
+	return totalColour;
+}
 void main()
 {
 	vec4 finalColour = CalcDirectionalLight();
-	finalColour += CalcPointLight();
+	finalColour += CalcPointLights();
+	finalColour += CalcSpotLights();
 	
 	colour = texture(theTexture, TexCoord) * finalColour;
 }

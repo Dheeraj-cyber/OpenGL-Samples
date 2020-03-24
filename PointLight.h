@@ -10,13 +10,13 @@ public:
 		GLfloat xPos, GLfloat yPos, GLfloat zPos,
 		GLfloat con, GLfloat lin, GLfloat exp); 
 
-	void UseLight(GLfloat ambientIntensityLocation, GLfloat ambientColourLocation, 
-				  GLfloat diffuseIntensityLocation, GLfloat positionLocation, 
-				  GLfloat constantLocation, GLfloat linearLocation, GLfloat exponentLocation);
+	void UseLight(GLuint ambientIntensityLocation, GLuint ambientColourLocation, 
+				  GLuint diffuseIntensityLocation, GLuint positionLocation, 
+				  GLuint constantLocation, GLuint linearLocation, GLuint exponentLocation);
 
 	~PointLight();
 
-private:
+protected:
 	glm::vec3 position;
 
 	GLfloat constant, linear, exponent;			//used for attenuation - i.e. how the light drops off over a distance. ax2 + bx + c - Here a = exponent, b = linear, c = constant
