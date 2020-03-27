@@ -28,7 +28,7 @@ void Mesh::CreateMesh(GLfloat* vertices, unsigned int* indices, unsigned int num
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertices[0])*8, (void*)(sizeof(vertices[0])*3));		//Here the attribute pointer is ar location 1 and index 2
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]) * 8, (void*)(sizeof(vertices[0]) * 5));		//Here the attribute pointer is ar location 2 and index 3. We are multiplying by 5 since 5 is the offset of the normal data. Offset - how far is the value from the other data
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0])*8, (void*)(sizeof(vertices[0]) * 5));		//Here the attribute pointer is ar location 2 and index 3. We are multiplying by 5 since 5 is the offset of the normal data. Offset - how far is the value from the other data
 	glEnableVertexAttribArray(2);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);

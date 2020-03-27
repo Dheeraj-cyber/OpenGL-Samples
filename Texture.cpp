@@ -6,7 +6,7 @@ Texture::Texture()
 	width = 0;
 	height = 0;
 	bitDepth = 0;
-	fileLocation = NULL;
+	fileLocation = "";
 }
 
 Texture::Texture(const char* fileLoc)
@@ -17,14 +17,41 @@ Texture::Texture(const char* fileLoc)
 	bitDepth = 0;
 	fileLocation = fileLoc;
 }
-
-void Texture::LoadTexture()
+bool Texture::LoadTexture()
 {
-	unsigned char* texData = stbi_load(fileLocation, &width, &height, &bitDepth, 0);			//unsigned char* is used to represent an image array ( an array of bytes)
+	unsigned char *texData = stbi_load(fileLocation, &width, &height, &bitDepth, 0);			//unsigned char* is used to represent an image array ( an array of bytes)
 	if (!texData)
 	{		//if the file location does not exist
 		printf("Failed to find: %s\n", fileLocation);
-		return;
+		return false;
+	}
+
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);			//GL_TEXTURE_2D is just a flat surface
+
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	//GL_TEXTURE_WRAP_S specifies how to handle the image when it's around the border. S refers to the x-axis
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);		//GL_LINEAR means when you zoom in to the image, if you zoom in or zoom out of the image, it will try and blend the pixels together
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, texData);
+	glGenerateMipmap(GL_TEXTURE_2D);		//Used for mipmapping
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	stbi_image_free(texData);
+
+	return true;
+}
+
+bool Texture::LoadTextureA()
+{
+	unsigned char *texData = stbi_load(fileLocation, &width, &height, &bitDepth, 0);			//unsigned char* is used to represent an image array ( an array of bytes)
+	if (!texData)
+	{		//if the file location does not exist
+		printf("Failed to find: %s\n", fileLocation);
+		return false;
 	}
 
 	glGenTextures(1, &textureID);
@@ -42,6 +69,8 @@ void Texture::LoadTexture()
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	stbi_image_free(texData);
+
+	return true;
 }	
 
 void Texture::UseTexture()
@@ -58,7 +87,7 @@ void Texture::ClearTexture()
 	width = 0;
 	height = 0;
 	bitDepth = 0;
-	fileLocation = NULL;
+	fileLocation = "";
 }
 
 Texture::~Texture()
