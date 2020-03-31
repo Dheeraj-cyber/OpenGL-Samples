@@ -2,6 +2,9 @@
 
 Window::Window()
 {
+	xChange = 0.0f;
+	yChange = 0.0f;
+
 	width = 800;
 	height = 600;
 
@@ -13,6 +16,9 @@ Window::Window()
 
 Window::Window(GLint windowWidth, GLint windowHeight)
 {
+	xChange = 0.0f;
+	yChange = 0.0f;
+
 	width = windowWidth;
 	height = windowHeight;
 

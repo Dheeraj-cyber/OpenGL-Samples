@@ -30,12 +30,15 @@
 const float toRadians = 3.14159265f / 180.0f;    //radians = pi/180
 
 GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformEyePosition = 0,
-uniformSpecularIntensity = 0, uniformShininess = 0;
+uniformSpecularIntensity = 0, uniformShininess = 0,
+uniformOmniLightPos = 0, uniformFarPlane = 0;
 
 Window mainWindow;
 std::vector<Mesh*> meshList;
+
 std::vector<Shader> shaderList;
 Shader directionalShadowShader;
+Shader omniShadowShader;
 
 Camera camera;
 
@@ -158,6 +161,7 @@ void CreateShaders()
 
 	directionalShadowShader = Shader();
 	directionalShadowShader.CreateFromFiles("Shaders/directional_shadow_map.vert", "Shaders/directional_shadow_map.frag");
+	omniShadowShader.CreateFromFiles("Shaders/omni_shadow_map.vert", "Shaders/omni_shadow_map.geom", "Shaders/omni_shadow_map.frag");
 }
 
 void RenderScene()
@@ -231,6 +235,28 @@ void DirectionalShadowMapPass(DirectionalLight* light)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);			
 }
 
+void OmniShadowMapPass(PointLight* light)
+{
+	//set up the viewport as the same dimensions as the frame buffer
+	glViewport(0, 0, light->GetShadowMap()->GetShadowWidth(), light->GetShadowMap()->GetShadowHeight());				//make sure that the frame buffer that we are drawing to is also the same size of the viewport
+
+	omniShadowShader.UseShader();
+	uniformModel = omniShadowShader.GetModelLocation();
+	uniformOmniLightPos = omniShadowShader.GetOmniLightPosLocation();
+	uniformFarPlane = omniShadowShader.GetFarPlaneLocation();
+
+	light->GetShadowMap()->write();			//write to our shadowmap
+	glClear(GL_DEPTH_BUFFER_BIT);			//Since we have attached our frame buffer, clear all the depth buffer information, if there is some depth buffer information
+
+	glUniform3f(uniformOmniLightPos, light->GetPosition().x, light->GetPosition().y, light->GetPosition().z);
+	glUniform1f(uniformFarPlane, light->GetFarPlane());
+	omniShadowShader.SetLightMatrices(light->CalculateLightTransform());
+
+	RenderScene();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void RenderPass(glm::mat4 projectionMatrix, glm::mat4 viewMatrix)
 {
 	shaderList[0].UseShader();
@@ -263,7 +289,7 @@ void RenderPass(glm::mat4 projectionMatrix, glm::mat4 viewMatrix)
 	
 	glm::vec3 lowerLight = camera.getCameraPosition();
 	lowerLight.y -= 0.3f;
-	//spotLights[0].SetFlash(lowerLight, camera.getCameraDirection());
+	spotLights[0].SetFlash(lowerLight, camera.getCameraDirection());
 
 	RenderScene();
 }
@@ -302,19 +328,25 @@ int main()
 	
 	
 
-	pointLights[0] = PointLight(0.0f, 0.0f, 1.0f,
+	pointLights[0] = PointLight(1024, 1024, 
+								0.01f, 100.0f,
+								0.0f, 0.0f, 1.0f,
 								0.0f, 0.1f,
 								0.0f, 0.0f, 0.0f,
 								0.3f, 0.2f, 0.1f);
 	pointLightCount++;
 	
-	pointLights[1] = PointLight(0.0f, 1.0f, 0.0f,
+	pointLights[1] = PointLight(1024, 1024,
+								0.01f, 100.0f, 
+								0.0f, 1.0f, 0.0f,
 								0.0f, 0.1f,
 								-4.0f, 2.0f, 0.0f,
 								0.3f, 0.1f, 0.1f);
 	pointLightCount++;
 
-	spotLights[0] = SpotLight(1.0f, 1.0f, 1.0f,
+	spotLights[0] = SpotLight(1024, 1024,
+								0.01f, 100.0f,
+								1.0f, 1.0f, 1.0f,
 								0.0f, 2.0f,
 								0.0f, 0.0f, 0.0f,
 								0.0f, -1.0f, 0.0f,
@@ -322,7 +354,9 @@ int main()
 								20.0f);				//20.0f indicates the angle of our spotlight. In this case, 20 degrees.
 	spotLightCount++;
 	
-	spotLights[1] = SpotLight(1.0f, 1.0f, 1.0f,
+	spotLights[1] = SpotLight(1024, 1024,
+								0.01f, 100.0f, 
+								1.0f, 1.0f, 1.0f,
 								0.0f, 1.0f,
 								0.0f, -1.5f, 0.0f,
 								-100.0f, -1.0f, 0.0f,
@@ -330,7 +364,7 @@ int main()
 								20.0f);				//20.0f indicates the angle of our spotlight. In this case, 20 degrees.
 	spotLightCount++;
 
-	glm::mat4 projection = glm::perspective(45.0f, (GLfloat) mainWindow.getBufferWidth()/ mainWindow.getBufferHeight(), 0.1f, 100.0f);		//Divide the width by the height to get the aspect ratio
+	glm::mat4 projection = glm::perspective(glm::radians(60.0f), (GLfloat) mainWindow.getBufferWidth()/ mainWindow.getBufferHeight(), 0.1f, 100.0f);		//Divide the width by the height to get the aspect ratio
 
 
 	// loop until window closed
@@ -347,6 +381,18 @@ int main()
 		camera.mouseControl(mainWindow.getXChange(), mainWindow.getYChange());
 		
 		DirectionalShadowMapPass(&mainLight);			//renders the scene to the frame buffer which will then save it to a texture
+		
+		for (size_t i = 0; i < pointLightCount; i++)
+		{
+			OmniShadowMapPass(&pointLights[i]);
+		}
+
+		//go through all the spot lights 
+		for (size_t i = 0; i < spotLightCount; i++)
+		{
+			OmniShadowMapPass(&spotLights[i]);
+		}
+
 		RenderPass(projection, camera.calculateViewMatrix());
 
 		glUseProgram(0);

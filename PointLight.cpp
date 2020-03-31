@@ -8,15 +8,26 @@ PointLight::PointLight() : Light()
 	exponent = 0.0f;
 }
 
-PointLight::PointLight(GLfloat red, GLfloat green, GLfloat blue, 
+PointLight::PointLight(GLuint shadowWidth, GLuint shadowHeight,
+						GLfloat near, GLfloat far,
+						GLfloat red, GLfloat green, GLfloat blue, 
 						GLfloat aIntensity, GLfloat dIntensity, 
 						GLfloat xPos, GLfloat yPos, GLfloat zPos, 
-						GLfloat con, GLfloat lin, GLfloat exp) : Light(1024, 1024, red, green, blue, aIntensity, dIntensity)
+						GLfloat con, GLfloat lin, GLfloat exp) : Light(shadowWidth, shadowHeight, red, green, blue, aIntensity, dIntensity)
 {
 	position = glm::vec3(xPos, yPos, zPos);
 	constant = con;
 	linear = lin;
 	exponent = exp;
+
+	farPlane = far;
+
+	float aspect = (float)shadowWidth / (float) shadowHeight;			//calculate the aspect ratio of the shadow
+	lightProj = glm::perspective(glm::radians(90.0f), aspect, near, far);			//perspective is used when we are going to have an angle
+
+	shadowMap = new OmniShadowMap();
+	shadowMap->Init(shadowWidth, shadowHeight);
+
 }
 
 void PointLight::UseLight(GLuint ambientIntensityLocation, GLuint ambientColourLocation,
@@ -32,6 +43,34 @@ void PointLight::UseLight(GLuint ambientIntensityLocation, GLuint ambientColourL
 	glUniform1f(constantLocation, constant);		//We are going to get the location for our constant in the uniform value in our shader and we will be attaching constant to it
 	glUniform1f(linearLocation, linear);
 	glUniform1f(exponentLocation, exponent);
+}
+
+GLfloat PointLight::GetFarPlane()
+{
+	return farPlane;
+}
+
+glm::vec3 PointLight::GetPosition()
+{
+	return position;
+}
+
+std::vector<glm::mat4> PointLight::CalculateLightTransform()
+{
+	std::vector<glm::mat4> lightMatrices;
+	//+x -x
+	lightMatrices.push_back(lightProj * glm::lookAt(position, position + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));				//push_back is used to add to the end of the vector array
+	lightMatrices.push_back(lightProj * glm::lookAt(position, position + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));				//push_back is used to add to the end of the vector array
+	
+	//+y -y
+	lightMatrices.push_back(lightProj * glm::lookAt(position, position + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));				//push_back is used to add to the end of the vector array
+	lightMatrices.push_back(lightProj * glm::lookAt(position, position + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));				//push_back is used to add to the end of the vector array
+	
+	//+z -z
+	lightMatrices.push_back(lightProj * glm::lookAt(position, position + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));				//push_back is used to add to the end of the vector array
+	lightMatrices.push_back(lightProj * glm::lookAt(position, position + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));				//push_back is used to add to the end of the vector array
+
+	return lightMatrices;
 }
 
 PointLight::~PointLight()
