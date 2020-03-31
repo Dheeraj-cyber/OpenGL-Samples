@@ -75,7 +75,7 @@ bool Texture::LoadTextureA()
 
 void Texture::UseTexture()
 {
-	glActiveTexture(GL_TEXTURE0);		//GL_TEXTURE is the texture unit, when our texture is being run in the shader, it will be a sampler. The sampler is what will have access to the data for our texture. It access it through the texture unit.
+	glActiveTexture(GL_TEXTURE1);		//GL_TEXTURE is the texture unit, when our texture is being run in the shader, it will be a sampler. The sampler is what will have access to the data for our texture. It access it through the texture unit.
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
 }

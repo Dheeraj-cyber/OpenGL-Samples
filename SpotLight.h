@@ -22,6 +22,8 @@ public:
 
 	void SetFlash(glm::vec3 pos, glm::vec3 dir);		//here pos - cameras position and dir - cameras direction
 
+	void Toggle() { isOn = !isOn; }
+
 	~SpotLight();
 
 private:
@@ -29,5 +31,6 @@ private:
 
 	GLfloat edge, procEdge;					//indicates the edge of our light
 
+	bool isOn;
 };
 

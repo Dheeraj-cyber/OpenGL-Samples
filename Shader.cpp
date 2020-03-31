@@ -95,6 +95,21 @@ void Shader::CompileShader(const char* vertexCode, const char* geometryCode, con
 	
 }
 
+void Shader::Validate()
+{
+	GLint result = 0;			//This holds the result of the above two functions that we are going to perform
+	GLchar eLog[1024] = { 0 };	//This is a place to log the error
+
+	glValidateProgram(shaderID);			//Validates the program
+	glGetProgramiv(shaderID, GL_VALIDATE_STATUS, &result);	//GL_LINK_STATUS says whether the program has been linked or not
+	if (!result)
+	{
+		glGetProgramInfoLog(shaderID, sizeof(eLog), NULL, eLog);
+		printf("Error validating program: %s\n", eLog);
+		return;
+	}
+}
+
 void Shader::CompileProgram()
 {
 	GLint result = 0;			//This holds the result of the above two functions that we are going to perform
@@ -109,16 +124,7 @@ void Shader::CompileProgram()
 		glGetProgramInfoLog(shaderID, sizeof(eLog), NULL, eLog);
 		printf("Error linking program: %s\n", eLog);
 		return;
-	}
-
-	glValidateProgram(shaderID);			//Validates the program
-	glGetProgramiv(shaderID, GL_VALIDATE_STATUS, &result);	//GL_LINK_STATUS says whether the program has been linked or not
-	if (!result)
-	{
-		glGetProgramInfoLog(shaderID, sizeof(eLog), NULL, eLog);
-		printf("Error validating program: %s\n", eLog);
-		return;
-	}
+	}	
 
 	//uniform model will be the location of the model matrix
 	uniformProjection = glGetUniformLocation(shaderID, "projection");   //get the projection variable and place the id of the location in uniformProjection
@@ -211,6 +217,18 @@ void Shader::CompileProgram()
 		uniformLightMatrices[i] = glGetUniformLocation(shaderID, locBuff);
 
 	}
+	
+	for (size_t i = 0; i < MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS; i++)			//gets all the uniform projections for our light matrices
+	{
+		char locBuff[100] = { '\0' };
+
+		snprintf(locBuff, sizeof(locBuff), "omniShadowMaps[%d].shadowMap", i);
+		uniformOmniShadowMap[i].shadowMap = glGetUniformLocation(shaderID, locBuff);
+		
+		snprintf(locBuff, sizeof(locBuff), "omniShadowMaps[%d].farPlane", i);
+		uniformOmniShadowMap[i].farPlane = glGetUniformLocation(shaderID, locBuff);
+
+	}
 }
 
 GLuint Shader::GetProjectionLocation()
@@ -281,7 +299,7 @@ void Shader::SetDirectionalLight(DirectionalLight* dLight)
 					 uniformDirectionalLight.uniformDiffuseIntensity, uniformDirectionalLight.uniformDirection);
 }
 
-void Shader::SetPointLights(PointLight* pLight, unsigned int lightCount)
+void Shader::SetPointLights(PointLight* pLight, unsigned int lightCount, unsigned int textureUnit, unsigned int offset)
 {
 	if (lightCount > MAX_POINT_LIGHTS)		lightCount = MAX_POINT_LIGHTS;
 
@@ -293,10 +311,14 @@ void Shader::SetPointLights(PointLight* pLight, unsigned int lightCount)
 							uniformPointLight[i].uniformDiffuseIntensity, uniformPointLight[i].uniformPosition, 
 							uniformPointLight[i].uniformConstant, uniformPointLight[i].uniformLinear, uniformPointLight[i].uniformExponent);
 
+	
+		pLight[i].GetShadowMap()->Read(GL_TEXTURE0 + textureUnit + i);		//GL_TEXTURE0 + textureUnit + i finds the textureUnit that we want starting at textureUnit and then just incrementing the value by i
+		glUniform1i(uniformOmniShadowMap[i + offset].shadowMap, textureUnit + i);
+		glUniform1f(uniformOmniShadowMap[i + offset].farPlane, pLight[i].GetFarPlane());
 	}
 }
 
-void Shader::SetSpotLights(SpotLight* sLight, unsigned int lightCount)
+void Shader::SetSpotLights(SpotLight* sLight, unsigned int lightCount, unsigned int textureUnit, unsigned int offset)
 {
 	if (lightCount > MAX_SPOT_LIGHTS)		lightCount = MAX_SPOT_LIGHTS;
 
@@ -308,6 +330,11 @@ void Shader::SetSpotLights(SpotLight* sLight, unsigned int lightCount)
 			uniformSpotLight[i].uniformDiffuseIntensity, uniformSpotLight[i].uniformPosition, uniformSpotLight[i].uniformDirection, 
 			uniformSpotLight[i].uniformConstant, uniformSpotLight[i].uniformLinear, uniformSpotLight[i].uniformExponent,
 			uniformSpotLight[i].uniformEdge);
+
+		sLight[i].GetShadowMap()->Read(GL_TEXTURE0 + textureUnit + i);		//GL_TEXTURE0 + textureUnit + i finds the textureUnit that we want starting at textureUnit and then just incrementing the value by i
+		glUniform1i(uniformOmniShadowMap[i + offset].shadowMap, textureUnit + i);
+		glUniform1f(uniformOmniShadowMap[i + offset].farPlane, sLight[i].GetFarPlane());
+
 	}
 }
 
