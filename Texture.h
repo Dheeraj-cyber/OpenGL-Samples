@@ -2,7 +2,7 @@
 
 #include<GL/glew.h>
 
-#include "stb_image.h"
+#include "CommonValues.h"
 
 class Texture
 {	//This class holds the texture ID
