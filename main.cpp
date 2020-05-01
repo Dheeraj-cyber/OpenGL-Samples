@@ -54,6 +54,7 @@ Material dullMaterial;			//has low shininess and low specular intensity
 
 Model xwing;
 Model blackhawk;
+Model character;
 
 DirectionalLight mainLight;
 PointLight pointLights[MAX_POINT_LIGHTS];
@@ -198,7 +199,8 @@ void RenderScene()
 	meshList[2]->RenderMesh();
 
 	model = glm::mat4(1.0f);	//Creates a identity matrix
-	model = glm::translate(model, glm::vec3(-7.0f, 0.0f, 10.0f));
+	model = glm::translate(model, glm::vec3(4.0f, 0.0f, -11.0f));
+	model = glm::rotate(model, -180.0f * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
 	model = glm::scale(model, glm::vec3(0.006f, 0.006f, 0.006f));
 	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 	shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
@@ -219,6 +221,15 @@ void RenderScene()
 	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 	shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
 	blackhawk.RenderModel();
+
+	//character 
+	model = glm::mat4(1.0f);
+	model = glm::translate(model, glm::vec3(4.0f, 0.0f, -6.0f));
+	model = glm::rotate(model, -180.0f * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
+	model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
+	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+	shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
+	character.RenderModel();
 }
 
 void DirectionalShadowMapPass(DirectionalLight* light)
@@ -321,7 +332,7 @@ int main()
 
 	brickTexture = Texture("Textures/brick.png");
 	brickTexture.LoadTextureA();
-	dirtTexture = Texture("Textures/dirt.png");
+	dirtTexture = Texture("Textures/Circuit.png");
 	dirtTexture.LoadTextureA();
 	plainTexture = Texture("Textures/plain.png");
 	plainTexture.LoadTextureA();
@@ -334,6 +345,9 @@ int main()
 
 	blackhawk = Model();
 	blackhawk.LoadModel("Models/uh60.obj");
+
+	character = Model();
+	character.LoadModel("Models/character.obj");           //import and load the character
 
 	mainLight = DirectionalLight(2048, 2048,
 								1.0f, 0.53f, 0.3f, 
